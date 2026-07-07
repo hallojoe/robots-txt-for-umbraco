@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeProjectReferenceBuildOutput</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Product>Casko.RobotsTxtForUmbraco</Product>
+    <PackageId>Casko.RobotsTxtForUmbraco</PackageId>
+    <Title>Robots.txt for Umbraco</Title>
+    <Description>Robots.txt for Umbraco helps Umbraco projects publish host-aware robots.txt files from configuration and content rules.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;robots-txt;seo</PackageTags>
+    <Authors>Casper Korsgaard</Authors>
+    <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Casper Korsgaard</Copyright>
+    <PackageProjectUrl>https://github.com/hallojoe/robots-txt-for-umbraco</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hallojoe/robots-txt-for-umbraco</RepositoryUrl>
+    <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" />
+    <PackageReference Include="Umbraco.Cms.Api.Common" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="Client\**" />
+    <None Include="Client\public\umbraco-package.json" Pack="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\docs\README_nuget.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Common\Casko.RobotsTxtForUmbraco.Common.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Delivery\Casko.RobotsTxtForUmbraco.Delivery.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Models\Casko.RobotsTxtForUmbraco.Models.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia\Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Storage\Casko.RobotsTxtForUmbraco.Storage.csproj" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="IncludeProjectReferenceBuildOutput" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'" />
+    </ItemGroup>
+  </Target>
+</Project>

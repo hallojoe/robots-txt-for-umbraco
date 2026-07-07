@@ -1,0 +1,14 @@
+{
+  "id": "Casko.RobotsTxtForUmbraco",
+  "name": "Casko.RobotsTxtForUmbraco",
+  "version": "0.0.0",
+  "allowTelemetry": true,
+  "extensions": [
+    {
+      "name": "Robots.txt for Umbraco Bundle",
+      "alias": "Casko.RobotsTxtForUmbraco.Bundle",
+      "type": "bundle",
+      "js": "/App_Plugins/RobotsTxtForUmbraco/robots-txt-for-umbraco.js"
+    }
+  ]
+}
