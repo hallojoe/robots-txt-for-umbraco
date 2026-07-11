@@ -11,7 +11,7 @@ permissions:
 
 env:
   DOTNET_VERSION: 10.0.x
-  PROJECT_FILE: src/Casko.RobotsTxtForUmbraco.Packagee/Casko.RobotsTxtForUmbraco.Packagee.csproj
+  PROJECT_FILE: src/Casko.RobotsTxtForUmbraco.Package/Casko.RobotsTxtForUmbraco.Package.csproj
   GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
   NUGET_PACKAGE_SOURCE: https://api.nuget.org/v3/index.json
 
