@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
+    <PackageReference Include="Umbraco.Cms.Api.Common" />
+    <PackageReference Include="Umbraco.Cms.Api.Delivery" />
+    <PackageReference Include="Umbraco.Cms.Web.Common" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Common\Casko.RobotsTxtForUmbraco.Common.csproj" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Models\Casko.RobotsTxtForUmbraco.Models.csproj" />
+  </ItemGroup>
+</Project>

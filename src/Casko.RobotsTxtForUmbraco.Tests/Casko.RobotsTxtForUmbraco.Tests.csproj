@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="coverlet.msbuild">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Common\Casko.RobotsTxtForUmbraco.Common.csproj" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Delivery\Casko.RobotsTxtForUmbraco.Delivery.csproj" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Storage\Casko.RobotsTxtForUmbraco.Storage.csproj" />
+    <ProjectReference Include="..\Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia\Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia.csproj" />
+  </ItemGroup>
+</Project>

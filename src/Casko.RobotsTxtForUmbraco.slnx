@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="Casko.RobotsTxtForUmbraco.Common/Casko.RobotsTxtForUmbraco.Common.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Delivery/Casko.RobotsTxtForUmbraco.Delivery.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Models/Casko.RobotsTxtForUmbraco.Models.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia/Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Storage/Casko.RobotsTxtForUmbraco.Storage.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Tests/Casko.RobotsTxtForUmbraco.Tests.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.TestSite/Casko.RobotsTxtForUmbraco.TestSite.csproj" />
+  <Project Path="Casko.RobotsTxtForUmbraco.Package/Casko.RobotsTxtForUmbraco.Package.csproj" />
+</Solution>

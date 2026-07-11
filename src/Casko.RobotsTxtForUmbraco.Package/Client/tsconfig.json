@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "../wwwroot/App_Plugins/RobotsTxtForUmbraco",
+    "skipLibCheck": true,
+    "types": ["@umbraco-cms/backoffice/extension-types"]
+  },
+  "include": ["src/**/*.ts"]
+}
