@@ -13,7 +13,6 @@ public sealed class MediaStorageOptions
     public string? MediaTypePropertyAlias { get; set; }
 }
 
-
 public sealed class MediaStorageOptionsValidator : IValidateOptions<MediaStorageOptions>
 {
     public ValidateOptionsResult Validate(string? name, MediaStorageOptions options)

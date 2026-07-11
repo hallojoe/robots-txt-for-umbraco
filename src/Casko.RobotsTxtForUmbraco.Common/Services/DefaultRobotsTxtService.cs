@@ -1,52 +1,46 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
+using Casko.RobotsTxtForUmbraco.Common.Services.Rendering;
 using Casko.RobotsTxtForUmbraco.Models;
 using Microsoft.Extensions.Options;
+
 namespace Casko.RobotsTxtForUmbraco.Common.Services;
 
 public sealed class DefaultRobotsTxtService(
-    IOptions<RobotsTxtOptions> options) : IRobotsTxtService
+    IOptions<RobotsTxtOptions> options,
+    IRobotsTxtRenderer robotsTxtRenderer,
+    IRobotsTxtBindingFileResolver bindingFileResolver) : IRobotsTxtService
 {
     /// <inheritdoc />
     public async Task<RobotsTxtDocument> GetAsync(string? hostName, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var settings = options.Value;
-        var configuredFile = RobotsTxtOptionsResolver.Resolve(settings, hostName);
-        var document = CreateConfiguredDocument(configuredFile);
-  
-        return document;
-    }
-
-    private static RobotsTxtDocument CreateConfiguredDocument(RobotsTxtHostOptions? configuredFile)
-    {
-        if (configuredFile is null)
+        var resolvedBinding = RobotsTxtOptionsResolver.Resolve(options.Value, hostName);
+        if (resolvedBinding is null)
         {
             return new RobotsTxtDocument();
         }
 
-        return new RobotsTxtDocument
+        var document = new RobotsTxtDocument();
+
+        foreach (var include in Clean(resolvedBinding.Binding.Include))
         {
-            DisallowUserAgents = Clean(configuredFile.DisallowUserAgents).ToList(),
-            SitemapBaseUrl = ResolveSitemapBaseUrl(configuredFile),
-            Groups = configuredFile.UserAgents
-                .Select(entry => new RobotsTxtGroup
-                {
-                    UserAgents = Clean([entry.Key]).ToList(),
-                    Allow = Clean(entry.Value.Allow).ToList(),
-                    Disallow = Clean(entry.Value.Disallow).ToList()
-                })
-                .Where(group => group.UserAgents.Count > 0)
-                .ToList(),
-            Sitemaps = Clean(configuredFile.Sitemaps).ToList()
-        };
+            var fileContents = await bindingFileResolver.ReadAsync(include, cancellationToken);
+            var partialDocument = robotsTxtRenderer.Parse(fileContents);
+            document = robotsTxtRenderer.Merge(document, partialDocument);
+        }
+
+        document.SitemapBaseUrl = ResolveSitemapBaseUrl(resolvedBinding);
+        document.Sitemaps = Clean(document.Sitemaps.Concat(resolvedBinding.Binding.Sitemaps)).ToList();
+
+        return document;
     }
 
-    private static string? ResolveSitemapBaseUrl(RobotsTxtHostOptions configuredFile)
+    private static string? ResolveSitemapBaseUrl(RobotsTxtResolvedBinding resolvedBinding)
     {
-        var baseUrl = string.IsNullOrWhiteSpace(configuredFile.FrontendHostName)
-            ? configuredFile.HostName
-            : configuredFile.FrontendHostName;
+        var baseUrl = string.IsNullOrWhiteSpace(resolvedBinding.Binding.Url)
+            ? resolvedBinding.Binding.Host
+            : resolvedBinding.Binding.Url;
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {

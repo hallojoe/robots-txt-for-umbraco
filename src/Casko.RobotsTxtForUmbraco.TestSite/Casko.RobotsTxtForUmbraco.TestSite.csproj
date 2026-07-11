@@ -14,6 +14,7 @@
     <PackageReference Include="Microsoft.ICU.ICU4C.Runtime" />
     <PackageReference Include="uSync" />
   </ItemGroup>
+  
   <ItemGroup>
     <!-- Opt-in to app-local ICU to ensure consistent globalization APIs across different platforms -->
     <PackageReference Include="Microsoft.ICU.ICU4C.Runtime"/>
@@ -25,20 +26,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="robots.ai-bots.txt">
+    <None Update="robots.*.txt">
       <DependentUpon>robots.txt</DependentUpon>
     </None>
   </ItemGroup>
-     
-    <PropertyGroup>
-        <!-- Razor files are needed for the backoffice to work correctly -->
-        <CopyRazorGenerateFilesToPublishDirectory>true</CopyRazorGenerateFilesToPublishDirectory>
-    </PropertyGroup>
+    
+  <PropertyGroup>
+    <!-- Razor files are needed for the backoffice to work correctly -->
+    <CopyRazorGenerateFilesToPublishDirectory>true</CopyRazorGenerateFilesToPublishDirectory>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <!-- Remove RazorCompileOnBuild and RazorCompileOnPublish when not using ModelsMode InMemoryAuto -->
-        <RazorCompileOnBuild>true</RazorCompileOnBuild>
-        <RazorCompileOnPublish>true</RazorCompileOnPublish>
-    </PropertyGroup>
+  <PropertyGroup>
+    <!-- Remove RazorCompileOnBuild and RazorCompileOnPublish when not using ModelsMode InMemoryAuto -->
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
+  </PropertyGroup>
 
 </Project>

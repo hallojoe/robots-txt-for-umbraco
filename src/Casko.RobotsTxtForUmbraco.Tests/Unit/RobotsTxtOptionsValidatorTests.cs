@@ -1,4 +1,7 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
+using Casko.RobotsTxtForUmbraco.Common.Services;
+using Microsoft.Extensions.Hosting;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace Casko.RobotsTxtForUmbraco.Tests.Unit;
@@ -7,31 +10,17 @@ namespace Casko.RobotsTxtForUmbraco.Tests.Unit;
 public sealed class RobotsTxtOptionsValidatorTests
 {
     [Test]
-    public void Validate_WhenDefaultHostIsUnknown_ReturnsFailure()
+    public void Validate_WhenIncludeEntryIsBlank_ReturnsFailure()
     {
-        var result = new RobotsTxtOptionsValidator().Validate(null, new RobotsTxtOptions
-        {
-            DefaultHost = "missing",
-            Hosts = new Dictionary<string, RobotsTxtHostOptions>
-            {
-                ["default"] = new()
-            }
-        });
+        using var fixture = CreateFixture();
 
-        Assert.That(result.Failed, Is.True);
-    }
-
-    [Test]
-    public void Validate_WhenProfileReferenceIsUnknown_ReturnsFailure()
-    {
-        var result = new RobotsTxtOptionsValidator().Validate(null, new RobotsTxtOptions
+        var result = fixture.Validator.Validate(null, new RobotsTxtOptions
         {
-            DefaultHost = "default",
-            Hosts = new Dictionary<string, RobotsTxtHostOptions>
+            Hosts = new Dictionary<string, RobotsTxtBindingOptions>
             {
-                ["default"] = new()
+                ["example.com"] = new()
                 {
-                    Profiles = ["missing-profile"]
+                    Include = [" "]
                 }
             }
         });
@@ -40,24 +29,70 @@ public sealed class RobotsTxtOptionsValidatorTests
     }
 
     [Test]
-    public void Validate_WhenHostsAndProfilesAreValid_ReturnsSuccess()
+    public void Validate_WhenIncludeFileIsMissing_ReturnsFailure()
     {
-        var result = new RobotsTxtOptionsValidator().Validate(null, new RobotsTxtOptions
+        using var fixture = CreateFixture();
+
+        var result = fixture.Validator.Validate(null, new RobotsTxtOptions
         {
-            DefaultHost = "default",
-            Hosts = new Dictionary<string, RobotsTxtHostOptions>
+            Hosts = new Dictionary<string, RobotsTxtBindingOptions>
             {
-                ["default"] = new()
+                ["example.com"] = new()
                 {
-                    Profiles = ["profile-1"]
+                    Include = ["robots.missing.txt"]
                 }
-            },
-            Profiles = new Dictionary<string, RobotsTxtProfileOptions>
+            }
+        });
+
+        Assert.That(result.Failed, Is.True);
+    }
+
+    [Test]
+    public void Validate_WhenBindingsAreValid_ReturnsSuccess()
+    {
+        using var fixture = CreateFixture(("robots.valid.txt", "User-agent: *\nDisallow: /private"));
+
+        var result = fixture.Validator.Validate(null, new RobotsTxtOptions
+        {
+            Hosts = new Dictionary<string, RobotsTxtBindingOptions>
             {
-                ["profile-1"] = new()
+                [""] = new()
+                {
+                    Include = ["robots.valid.txt"]
+                }
             }
         });
 
         Assert.That(result.Succeeded, Is.True);
+    }
+
+    private static TestFixtureScope CreateFixture(params (string FileName, string Contents)[] files)
+    {
+        var rootPath = Path.Combine(Path.GetTempPath(), $"robots-txt-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(rootPath);
+
+        foreach (var file in files)
+        {
+            File.WriteAllText(Path.Combine(rootPath, file.FileName), file.Contents);
+        }
+
+        var hostEnvironment = Substitute.For<IHostEnvironment>();
+        hostEnvironment.ContentRootPath.Returns(rootPath);
+
+        var fileResolver = new ContentRootRobotsTxtBindingFileResolver(hostEnvironment);
+        return new TestFixtureScope(rootPath, new RobotsTxtOptionsValidator(fileResolver));
+    }
+
+    private sealed class TestFixtureScope(string rootPath, RobotsTxtOptionsValidator validator) : IDisposable
+    {
+        public RobotsTxtOptionsValidator Validator { get; } = validator;
+
+        public void Dispose()
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
     }
 }

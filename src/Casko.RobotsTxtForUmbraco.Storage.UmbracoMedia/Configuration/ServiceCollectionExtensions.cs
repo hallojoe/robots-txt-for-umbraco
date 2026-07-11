@@ -1,4 +1,5 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
+using Casko.RobotsTxtForUmbraco.Common.Services;
 using Casko.RobotsTxtForUmbraco.Storage.Configuration;
 using Casko.RobotsTxtForUmbraco.Storage.Services;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +31,8 @@ public static class ServiceCollectionExtensions
         
         services.AddScoped<IUmbracoMediaFileAccessor, UmbracoMediaFileAccessor>();
         services.AddScoped<IRobotsTxtDataSource, UmbracoMediaRobotsTxtDataSource>();
+        
+        services.AddScoped<IRobotsTxtTextService, StoredRobotsTxtTextService>();
         
         services.AddScoped<IRobotsTxtStorageRefreshService, RobotsTxtStorageRefreshService>();
 

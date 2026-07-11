@@ -2,6 +2,7 @@ using Casko.RobotsTxtForUmbraco.Common.Services;
 using Casko.RobotsTxtForUmbraco.Common.Services.Rendering;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Casko.RobotsTxtForUmbraco.Common.Configuration;
@@ -18,14 +19,16 @@ public static class ServiceCollectionExtensions
             return services;
         }
 
-        services.AddSingleton<IValidateOptions<RobotsTxtOptions>, RobotsTxtOptionsValidator>();
+        services.AddSingleton<IRobotsTxtBindingFileResolver, ContentRootRobotsTxtBindingFileResolver>();
+        services.AddSingleton<IValidateOptions<RobotsTxtOptions>>(serviceProvider =>
+            new RobotsTxtOptionsValidator(serviceProvider.GetRequiredService<IRobotsTxtBindingFileResolver>()));
         services
             .AddOptions<RobotsTxtOptions>()
             .Bind(robotsTxtConfigurationSection)
             .ValidateOnStart();
-        services.AddScoped<IRobotsTxtRenderer, RobotsTxtRenderer>();
-        services.AddScoped<IRobotsTxtService, DefaultRobotsTxtService>();
-        services.AddScoped<IRobotsTxtTextService, DefaultRobotsTxtTextService>();
+        services.TryAddScoped<IRobotsTxtRenderer, RobotsTxtRenderer>();
+        services.TryAddScoped<IRobotsTxtService, DefaultRobotsTxtService>();
+        services.TryAddScoped<IRobotsTxtTextService, DefaultRobotsTxtTextService>();
 
         return services;
     }

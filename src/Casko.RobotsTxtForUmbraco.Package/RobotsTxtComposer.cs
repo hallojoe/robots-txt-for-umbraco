@@ -9,7 +9,7 @@ public sealed class RobotsTxtComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
-        builder.AddRobotsTxtDeliveryApi();
         builder.AddRobotsTxtUmbracoMediaStorage();
+        builder.AddRobotsTxtDeliveryApi();
     }
 }
