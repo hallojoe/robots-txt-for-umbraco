@@ -6,7 +6,8 @@ public static class UmbracoBuilderExtensions
 {
     public static IUmbracoBuilder AddRobotsTxtUmbracoMediaStorage(this IUmbracoBuilder builder)
     {
-        builder.Services.AddRobotsTxtUmbracoMediaStorage();
+        builder.Services.AddRobotsTxtUmbracoMediaStorage(builder.Config);
+        
         return builder;
     }
 }

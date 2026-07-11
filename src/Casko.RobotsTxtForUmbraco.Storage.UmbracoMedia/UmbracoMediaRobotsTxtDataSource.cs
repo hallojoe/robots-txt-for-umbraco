@@ -1,5 +1,7 @@
 using System.Text;
-using Casko.RobotsTxtForUmbraco.Storage;
+using Casko.RobotsTxtForUmbraco.Common.Services.Rendering;
+using Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia.Configuration;
+using Microsoft.Extensions.Options;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 using UmbracoConstants = Umbraco.Cms.Core.Constants;
@@ -7,11 +9,12 @@ using UmbracoConstants = Umbraco.Cms.Core.Constants;
 namespace Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia;
 
 public sealed class UmbracoMediaRobotsTxtDataSource(
+    IOptions<MediaStorageOptions> mediaStorageOptions,
+    IRobotsTxtRenderer robotsTxtRenderer,
     IMediaService mediaService,
     IRobotsTxtStorageNameProvider nameProvider,
     IUmbracoMediaFileAccessor mediaFileAccessor) : IRobotsTxtDataSource
 {
-    public const string RootFolderName = "Robots Txt";
     private const int PageSize = 100;
 
     /// <inheritdoc />
@@ -41,9 +44,51 @@ public sealed class UmbracoMediaRobotsTxtDataSource(
         }
 
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var text = reader.ReadToEnd();
 
-        return Task.FromResult<RobotsTxtStoredDocument?>(CreateDocument(key, media, fileName, filePath, text));
+        var text = reader.ReadToEnd();
+        
+        var createdDocument = CreateDocument(key, media, fileName, filePath, text);
+        
+        return Task.FromResult<RobotsTxtStoredDocument?>(createdDocument);
+    }
+
+    private static bool HasRobotsTxtCustomizations(IMedia media, MediaStorageOptions options)
+    {
+        return !string.IsNullOrWhiteSpace(options.MediaTypeAlias) &&
+               !string.IsNullOrWhiteSpace(options.MediaTypePropertyAlias) &&
+               media.HasProperty(options.MediaTypePropertyAlias);
+    }
+
+    private static string? ReadRobotsTxtCustomization(IMedia media, MediaStorageOptions options)
+    {
+        if (!HasRobotsTxtCustomizations(media, options))
+        {
+            return null;
+        }
+
+        var userRobotsText = media.GetValue<string?>(options.MediaTypePropertyAlias!);
+        
+        return string.IsNullOrWhiteSpace(userRobotsText) ? null : userRobotsText;
+    }
+
+    private string? MergeRobotsTxtFileContents(string? userRobotsTxtString, string? existingRobotsTxtString)
+    {
+        if (string.IsNullOrWhiteSpace(existingRobotsTxtString))
+        {
+            return userRobotsTxtString;
+        }
+
+        if (string.IsNullOrWhiteSpace(userRobotsTxtString))
+        {
+            return existingRobotsTxtString;
+        }
+        
+        var userRobotsTextDocument = robotsTxtRenderer.Parse(userRobotsTxtString);
+        var existingRobotsTextDocument = robotsTxtRenderer.Parse(existingRobotsTxtString);
+        var mergedRobotsTextDocument = robotsTxtRenderer.Merge(existingRobotsTextDocument, userRobotsTextDocument);
+        var reRenderedRobotsText = robotsTxtRenderer.Render(mergedRobotsTextDocument);
+        
+        return reRenderedRobotsText;
     }
 
     /// <inheritdoc />
@@ -64,14 +109,26 @@ public sealed class UmbracoMediaRobotsTxtDataSource(
             var existingPath = mediaFileAccessor.GetFilePath(media);
             if (!string.IsNullOrWhiteSpace(existingPath))
             {
+                var userRobotsText = ReadRobotsTxtCustomization(media, mediaStorageOptions.Value);
+                var userRobotsTextMerged = MergeRobotsTxtFileContents(userRobotsText, text);
+                if (userRobotsTextMerged is not null)
+                {
+                    text = userRobotsTextMerged;
+                }
+
                 using var updateStream = CreateStream(text);
+
                 mediaFileAccessor.UpdateFileContent(existingPath, updateStream);
+                
                 mediaService.Save(media);
-                return Task.FromResult(CreateDocument(key, media, fileName, existingPath, text));
+
+                var createdDocument = CreateDocument(key, media, fileName, existingPath, text);
+                
+                return Task.FromResult(createdDocument);
             }
         }
 
-        media ??= mediaService.CreateMedia(fileName, folder, UmbracoConstants.Conventions.MediaTypes.File);
+        media ??= mediaService.CreateMedia(fileName, folder, mediaStorageOptions.Value.MediaTypeAlias);
 
         using var createStream = CreateStream(text);
         mediaFileAccessor.SetInitialFile(media, fileName, createStream);
@@ -83,7 +140,7 @@ public sealed class UmbracoMediaRobotsTxtDataSource(
     private IMedia EnsureRootFolder()
     {
         var existing = mediaService.GetRootMedia()
-            .FirstOrDefault(media => string.Equals(media.Name, RootFolderName, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(media => string.Equals(media.Name, mediaStorageOptions.Value.FolderName, StringComparison.OrdinalIgnoreCase));
 
         if (existing is not null)
         {
@@ -91,7 +148,7 @@ public sealed class UmbracoMediaRobotsTxtDataSource(
         }
 
         var folder = mediaService.CreateMedia(
-            RootFolderName,
+            mediaStorageOptions.Value.FolderName,
             UmbracoConstants.System.Root,
             UmbracoConstants.Conventions.MediaTypes.Folder);
         mediaService.Save(folder);
@@ -102,7 +159,8 @@ public sealed class UmbracoMediaRobotsTxtDataSource(
     private IMedia? FindMedia(string fileName, int? parentId = null)
     {
         var parent = parentId ?? mediaService.GetRootMedia()
-            .FirstOrDefault(media => string.Equals(media.Name, RootFolderName, StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault(media => string.Equals(
+                media.Name, mediaStorageOptions.Value.FolderName, StringComparison.OrdinalIgnoreCase))
             ?.Id;
 
         if (parent is null)

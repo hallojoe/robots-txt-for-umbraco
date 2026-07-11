@@ -19,6 +19,6 @@ public sealed class RobotsTxtApiConfigureSwaggerGenOptions : IConfigureOptions<S
             });
         }
 
-        options.OperationFilter<RobotsTxtDeliveryApiHeadersOperationFilter>();
+        // options.OperationFilter<RobotsTxtDeliveryApiHeadersOperationFilter>();
     }
 }

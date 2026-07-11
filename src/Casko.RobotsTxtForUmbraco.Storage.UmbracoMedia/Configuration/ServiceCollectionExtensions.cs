@@ -1,18 +1,40 @@
+using Casko.RobotsTxtForUmbraco.Common.Configuration;
 using Casko.RobotsTxtForUmbraco.Storage.Configuration;
-using Casko.RobotsTxtForUmbraco.Storage;
+using Casko.RobotsTxtForUmbraco.Storage.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Umbraco.Cms.Infrastructure.BackgroundJobs;
+using Microsoft.Extensions.Options;
+using Umbraco.Extensions;
 
 namespace Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia.Configuration;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddRobotsTxtUmbracoMediaStorage(this IServiceCollection services)
+    public static IServiceCollection AddRobotsTxtUmbracoMediaStorage(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddRobotsTxtStorage();
+        var robotsTxtConfigurationSection = configuration.GetSection(RobotsTxtOptions.Key);
+        var robotsTxtOptions = robotsTxtConfigurationSection.Get<RobotsTxtOptions>();
+
+        if (robotsTxtOptions?.Enabled is not true)
+        {
+            return services;
+        }
+        
+        services.AddRobotsTxtStorage(configuration);
+
+        services.AddSingleton<IValidateOptions<MediaStorageOptions>, MediaStorageOptionsValidator>();
+        services
+            .AddOptions<MediaStorageOptions>()
+            .Bind(configuration.GetSection(MediaStorageOptions.Key))
+            .ValidateOnStart();
+        
         services.AddScoped<IUmbracoMediaFileAccessor, UmbracoMediaFileAccessor>();
         services.AddScoped<IRobotsTxtDataSource, UmbracoMediaRobotsTxtDataSource>();
-        services.AddSingleton<IRecurringBackgroundJob, UmbracoMediaRobotsTxtRefreshBackgroundJob>();
+        
+        services.AddScoped<IRobotsTxtStorageRefreshService, RobotsTxtStorageRefreshService>();
+
+        services.AddRecurringBackgroundJob<UmbracoMediaRobotsTxtRefreshBackgroundJob>();
+
         return services;
     }
 }

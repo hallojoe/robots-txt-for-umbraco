@@ -8,40 +8,29 @@ public sealed class RobotsTxtOptions
 
     public bool RewritesEnabled { get; set; } = true;
 
-    /// <summary>
-    /// Gets or sets the level where routed root nodes are resolved.
-    /// </summary>
-    public int RootNodeSearchLevel { get; set; }
-
-    public List<string> IncludedContentTypeAliases { get; set; } = [];
-
-    public List<string> ExcludedContentTypeAliases { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the property alias of the property that determines whether a content item is excluded from robots.txt.
-    /// When <see cref="ExcludingUrlPropertyValue"/> is set to "1", the content item path is written to robots.txt as "Disallow:".
-    /// </summary>
-    public string? ExcludingUrlPropertyAlias { get; set; } = "umbracoNaviHide";
-
-    /// <summary>
-    /// Gets or sets the match value of the property that determines whether the content item path is written to robots.txt as "Disallow:".
-    /// </summary>
-    public string? ExcludingUrlPropertyValue { get; set; } = "1";
-
-    public string[] RootDocumentTypeAliases { get; set; } = [];
-
-    public string[] HostingDocumentTypeAliases { get; set; } = [];
-
-    public List<string> IncludedCultures { get; set; } = [];
-
-    public List<string> ExcludedCultures { get; set; } = [];
-
     public bool UseDeliveryApiAccessPolicy { get; set; }
 
+    /// <summary>
+    /// Gets or sets the runtime host configurations keyed by internal host identifier.
+    /// </summary>
+    public Dictionary<string, RobotsTxtHostOptions> Hosts { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets reusable robots.txt content profiles keyed by profile identifier.
+    /// </summary>
+    public Dictionary<string, RobotsTxtProfileOptions> Profiles { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the fallback host key used when no host-specific entry matches.
+    /// </summary>
+    public string DefaultHost { get; set; } = "*";
+
+    /// <summary>
+    /// Gets or sets the legacy per-file configuration model. Prefer <see cref="Hosts"/> and <see cref="Profiles"/>.
+    /// </summary>
     public Dictionary<string, RobotsTxtFileOptions> Files { get; set; } = [];
 
     public RobotsTxtStorageOptions Storage { get; set; } = new();
-
 }
 
 public sealed class RobotsTxtStorageOptions
@@ -76,19 +65,61 @@ public sealed class RobotsTxtStorageBackgroundJobOptions
 }
 
 /// <summary>
-/// Individual robots.txt file configuration.
+/// Reusable robots.txt profile content.
 /// </summary>
-public sealed class RobotsTxtFileOptions
+public class RobotsTxtProfileOptions
 {
     /// <summary>
-    /// Gets or sets a value indicating whether property-based disallow scanning is enabled.
+    /// A list of user agents to disallow by default.
     /// </summary>
-    public bool DisallowScanEnabled { get; set; } = true;
+    public List<string> DisallowUserAgents { get; set; } = []; 
 
+    /// <summary>
+    /// Gets or sets sitemap URLs emitted by this configuration.
+    /// </summary>
+    public List<string> Sitemaps { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets user-agent rules keyed by user-agent value.
+    /// </summary>
+    public Dictionary<string, RobotsTxtUserAgentOptions> UserAgents { get; set; } = [];
+}
+
+/// <summary>
+/// Runtime host-specific robots.txt configuration.
+/// </summary>
+public sealed class RobotsTxtHostOptions : RobotsTxtProfileOptions
+{
     /// <summary>
     /// Gets or sets the host name this file applies to.
     /// </summary>
     public string? HostName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the frontend URL. Only necessary when frontend-URL is different from URL found in the hostname.
+    /// </summary>
+    public string? FrontendHostName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ordered list of reusable profiles to apply to this host.
+    /// </summary>
+    public List<string> Profiles { get; set; } = [];
+}
+
+/// <summary>
+/// Individual robots.txt file configuration used by the legacy <see cref="RobotsTxtOptions.Files"/> model.
+/// </summary>
+public sealed class RobotsTxtFileOptions
+{
+    /// <summary>
+    /// Gets or sets the host name this file applies to.
+    /// </summary>
+    public string? HostName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the frontend URL. Only necessary when frontend-URL is different from URL found in the hostname.
+    /// </summary>
+    public string? FrontendHostName { get; set; }
 
     /// <summary>
     /// Gets or sets sitemap URLs emitted by this file.

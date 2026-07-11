@@ -1,12 +1,10 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
-using Casko.RobotsTxtForUmbraco.Common.Services.Cms;
 using Casko.RobotsTxtForUmbraco.Models;
 using Microsoft.Extensions.Options;
 namespace Casko.RobotsTxtForUmbraco.Common.Services;
 
 public sealed class DefaultRobotsTxtService(
-    IOptions<RobotsTxtOptions> options,
-    IRobotsTxtCmsContentService cmsContentService) : IRobotsTxtService
+    IOptions<RobotsTxtOptions> options) : IRobotsTxtService
 {
     /// <inheritdoc />
     public async Task<RobotsTxtDocument> GetAsync(string? hostName, CancellationToken cancellationToken = default)
@@ -14,35 +12,13 @@ public sealed class DefaultRobotsTxtService(
         cancellationToken.ThrowIfCancellationRequested();
 
         var settings = options.Value;
-        var configuredFile = ResolveConfiguredFile(settings, hostName);
+        var configuredFile = RobotsTxtOptionsResolver.Resolve(settings, hostName);
         var document = CreateConfiguredDocument(configuredFile);
-        if (!settings.Enabled || configuredFile is null)
-        {
-            return document;
-        }
-
-        if (!configuredFile.DisallowScanEnabled)
-        {
-            return document;
-        }
-
-        var generatedDisallows = CollectGeneratedDisallows(settings, configuredFile.HostName ?? hostName);
-        MergeGeneratedDisallows(document, generatedDisallows);
-
+  
         return document;
     }
 
-    private IEnumerable<string> CollectGeneratedDisallows(RobotsTxtOptions settings, string? hostName)
-    {
-        if (string.IsNullOrWhiteSpace(settings.ExcludingUrlPropertyAlias))
-        {
-            return [];
-        }
-
-        return cmsContentService.GetDisallowedContents(hostName);
-    }
-
-    private static RobotsTxtDocument CreateConfiguredDocument(RobotsTxtFileOptions? configuredFile)
+    private static RobotsTxtDocument CreateConfiguredDocument(RobotsTxtHostOptions? configuredFile)
     {
         if (configuredFile is null)
         {
@@ -51,6 +27,8 @@ public sealed class DefaultRobotsTxtService(
 
         return new RobotsTxtDocument
         {
+            DisallowUserAgents = Clean(configuredFile.DisallowUserAgents).ToList(),
+            SitemapBaseUrl = ResolveSitemapBaseUrl(configuredFile),
             Groups = configuredFile.UserAgents
                 .Select(entry => new RobotsTxtGroup
                 {
@@ -64,57 +42,26 @@ public sealed class DefaultRobotsTxtService(
         };
     }
 
-    private static void MergeGeneratedDisallows(RobotsTxtDocument document, IEnumerable<string> generatedDisallows)
+    private static string? ResolveSitemapBaseUrl(RobotsTxtHostOptions configuredFile)
     {
-        var paths = generatedDisallows.ToArray();
-        if (paths.Length == 0)
-        {
-            return;
-        }
+        var baseUrl = string.IsNullOrWhiteSpace(configuredFile.FrontendHostName)
+            ? configuredFile.HostName
+            : configuredFile.FrontendHostName;
 
-        var group = document.Groups.FirstOrDefault(group =>
-            group.UserAgents.Any(userAgent => string.Equals(userAgent, "*", StringComparison.OrdinalIgnoreCase)));
-
-        if (group is null)
-        {
-            group = new RobotsTxtGroup { UserAgents = ["*"] };
-            document.Groups.Add(group);
-        }
-
-        group.Disallow = group.Disallow
-            .Concat(paths)
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => path.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    private static RobotsTxtFileOptions? ResolveConfiguredFile(RobotsTxtOptions settings, string? hostName)
-    {
-        if (settings.Files.Count == 0)
+        if (string.IsNullOrWhiteSpace(baseUrl))
         {
             return null;
         }
 
-        var exactHostMatch = settings.Files.Values.FirstOrDefault(file => RobotsTxtHostName.IsMatch(file.HostName, hostName));
-        if (exactHostMatch is not null)
+        var normalizedBaseUrl = baseUrl.Trim().TrimEnd('/');
+        if (!normalizedBaseUrl.Contains("://", StringComparison.Ordinal))
         {
-            return exactHostMatch;
+            normalizedBaseUrl = "https://" + normalizedBaseUrl;
         }
 
-        var hostlessMatch = settings.Files.Values.FirstOrDefault(file => string.IsNullOrWhiteSpace(file.HostName));
-        if (hostlessMatch is not null)
-        {
-            return hostlessMatch;
-        }
-
-        if (settings.Files.TryGetValue("default", out var defaultFile))
-        {
-            return defaultFile;
-        }
-
-        return settings.Files.Values.FirstOrDefault();
+        return Uri.TryCreate(normalizedBaseUrl, UriKind.Absolute, out var uri)
+            ? uri.ToString().TrimEnd('/')
+            : null;
     }
 
     private static IEnumerable<string> Clean(IEnumerable<string> values)

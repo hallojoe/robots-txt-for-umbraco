@@ -28,7 +28,7 @@ public sealed class RobotsTxtStorageRefreshServiceTests
             dataSource,
             Options.Create(new RobotsTxtOptions
             {
-                Files = new Dictionary<string, RobotsTxtFileOptions>
+                Hosts = new Dictionary<string, RobotsTxtHostOptions>
                 {
                     ["default"] = new() { HostName = null },
                     ["host-1"] = new() { HostName = "example.com" },
@@ -42,5 +42,34 @@ public sealed class RobotsTxtStorageRefreshServiceTests
         await robotsTxtService.Received(1).GetAsync("example.com", Arg.Any<CancellationToken>());
         await robotsTxtService.Received(1).GetAsync("example.org", Arg.Any<CancellationToken>());
         await dataSource.Received(1).WriteAsync(Arg.Is<RobotsTxtStorageKey>(key => key.HostName == null), "robots", Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task RefreshAllAsync_WhenUsingLegacyFiles_RefreshesLegacyConfiguredHostsAndDefault()
+    {
+        var robotsTxtService = Substitute.For<IRobotsTxtService>();
+        var renderer = Substitute.For<Casko.RobotsTxtForUmbraco.Common.Services.Rendering.IRobotsTxtRenderer>();
+        var dataSource = Substitute.For<IRobotsTxtDataSource>();
+        robotsTxtService.GetAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new RobotsTxtDocument());
+        renderer.Render(Arg.Any<RobotsTxtDocument>()).Returns("robots");
+
+        var sut = new RobotsTxtStorageRefreshService(
+            robotsTxtService,
+            renderer,
+            dataSource,
+            Options.Create(new RobotsTxtOptions
+            {
+                Files = new Dictionary<string, RobotsTxtFileOptions>
+                {
+                    ["default"] = new() { HostName = null },
+                    ["host-1"] = new() { HostName = "legacy.example.com" }
+                }
+            }));
+
+        await sut.RefreshAllAsync();
+
+        await robotsTxtService.Received(1).GetAsync((string?)null, Arg.Any<CancellationToken>());
+        await robotsTxtService.Received(1).GetAsync("legacy.example.com", Arg.Any<CancellationToken>());
     }
 }

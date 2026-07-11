@@ -7,7 +7,7 @@ public sealed class RobotsTxtResult(string content) : IResult
 {
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        httpContext.Response.ContentType = "text/plain; charset=utf-8";
+        httpContext.Response.ContentType = RobotsTxtApiConstants.ContentType;
         await httpContext.Response.WriteAsync(content, Encoding.UTF8);
     }
 }

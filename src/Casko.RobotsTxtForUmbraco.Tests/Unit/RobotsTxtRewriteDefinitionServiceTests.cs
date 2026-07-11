@@ -21,7 +21,7 @@ public sealed class RobotsTxtRewriteDefinitionServiceTests
         var matched = service.TryMatch("/robots.txt", new HostString("example.com"), out var targetPath);
 
         Assert.That(matched, Is.True);
-        Assert.That(targetPath, Is.EqualTo("/umbraco/delivery/api/v1/robotstxt?host=example.com"));
+        Assert.That(targetPath, Is.EqualTo("/api/robotstxt?host=example.com"));
     }
 
     [Test]

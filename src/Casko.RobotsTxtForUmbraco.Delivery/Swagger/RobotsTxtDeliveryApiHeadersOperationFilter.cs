@@ -7,8 +7,8 @@ namespace Casko.RobotsTxtForUmbraco.Delivery.Swagger;
 public sealed class RobotsTxtDeliveryApiHeadersOperationFilter : IOperationFilter
 {
     private const string ApiGroupName = RobotsTxtApiConstants.ApiName;
-    private const string ApiKeyHeaderName = "Api-Key";
-    private const string CultureHeaderName = "culture";
+    private const string ApiKeyHeaderName = RobotsTxtApiConstants.DeliveryApiKeyHeaderName;
+    private const string CultureHeaderName = RobotsTxtApiConstants.CultureHeaderName;
 
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {

@@ -17,18 +17,31 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         bool addRewritePipeline = true)
     {
+        var robotsTxtConfigurationSection = configuration.GetSection(RobotsTxtOptions.Key);
+        var robotsTxtOptions = robotsTxtConfigurationSection.Get<RobotsTxtOptions>();
+
+        if (robotsTxtOptions?.Enabled is not true)
+        {
+            return services;
+        }
+
         services.AddRobotsTxt(configuration);
+        
         services
             .AddControllers()
             .AddApplicationPart(typeof(RobotsTxtDeliveryApiController).Assembly);
-
+        
         services.ConfigureOptions<RobotsTxtApiConfigureSwaggerGenOptions>();
 
         services.Configure<UmbracoPipelineOptions>(options =>
         {
             options.AddFilter(new UmbracoPipelineFilter(
-                $"{RobotsTxtApiConstants.ApiName}-controlles",
+                $"{RobotsTxtApiConstants.ApiName}-controllers",
                 endpoints: app => app.UseEndpoints(endpoints => endpoints.MapControllers())));
+
+            // options.AddFilter(new UmbracoPipelineFilter(
+            //     $"{RobotsTxtApiConstants.ApiName}-response-headers",
+            //     prePipeline: app => app.UseMiddleware<HttpResponseHeadersMiddleware>()));
         });
 
         if (addRewritePipeline)

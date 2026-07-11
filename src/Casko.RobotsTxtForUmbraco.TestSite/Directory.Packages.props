@@ -4,6 +4,7 @@
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
   <ItemGroup>
+      <PackageVersion Include="Casko.HttpHeadersForUmbraco" Version="1.0.0-pre" />
       <PackageVersion Include="Casko.XmlSitemapsForUmbraco" Version="2.1.0-pre" />
       <PackageVersion Include="Umbraco.Cms" Version="17.*" />
       <PackageVersion Include="Umbraco.Cms.DevelopmentMode.Backoffice" Version="17.*" />

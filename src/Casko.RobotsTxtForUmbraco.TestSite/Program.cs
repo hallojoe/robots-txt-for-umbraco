@@ -1,5 +1,24 @@
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .AddJsonFile("appsettings.XmlSitemapsForUmbraco.json", optional: true, reloadOnChange: true)
+    .AddJsonFile("appsettings.RobotsTxtForUmbraco.json", optional: true, reloadOnChange: true)
+    .AddJsonFile("appsettings.XmlSitemapsForUmbraco.json", optional: true, reloadOnChange: true);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration
+        .AddJsonFile("appsettings.Development.XmlSitemapsForUmbraco.json", optional: true, reloadOnChange: true)
+        .AddJsonFile("appsettings.Development.RobotsTxtForUmbraco.json", optional: true, reloadOnChange: true)
+        .AddJsonFile("appsettings.Development.HttpHeadersForUmbraco.json", optional: true, reloadOnChange: true);
+}
+
+if (builder.Environment.IsProduction())
+{
+    builder.Configuration
+        .AddJsonFile("appsettings.Production.RobotsTxtForUmbraco.json", optional: true, reloadOnChange: true);
+}
+
 builder.CreateUmbracoBuilder()
     .AddBackOffice()
     .AddWebsite()

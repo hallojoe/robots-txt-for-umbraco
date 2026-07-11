@@ -23,13 +23,7 @@ public sealed class RobotsTxtStorageRefreshService(
     /// <inheritdoc />
     public async Task RefreshAllAsync(CancellationToken cancellationToken = default)
     {
-        var configuredHosts = options.Value.Files.Count == 0
-            ? [null]
-            : options.Value.Files.Values
-                .Select(file => file.HostName)
-                .Append(null)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+        var configuredHosts = RobotsTxtOptionsResolver.GetConfiguredHostNames(options.Value);
 
         foreach (var hostName in configuredHosts)
         {

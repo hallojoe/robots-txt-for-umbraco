@@ -2,6 +2,7 @@ using Casko.RobotsTxtForUmbraco.Common.Configuration;
 using Casko.RobotsTxtForUmbraco.Storage;
 using Casko.RobotsTxtForUmbraco.Storage.UmbracoMedia;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using NUnit.Framework;
@@ -14,17 +15,14 @@ public sealed class UmbracoMediaRobotsTxtRefreshBackgroundJobTests
     [Test]
     public async Task RunJobAsync_WhenEnabled_RefreshesAllConfiguredFiles()
     {
-        var scopeFactory = Substitute.For<IServiceScopeFactory>();
-        var scope = Substitute.For<IServiceScope>();
-        var serviceProvider = Substitute.For<IServiceProvider>();
         var refreshService = Substitute.For<IRobotsTxtStorageRefreshService>();
-
-        scope.ServiceProvider.Returns(serviceProvider);
-        scopeFactory.CreateScope().Returns(scope);
-        serviceProvider.GetService(typeof(IRobotsTxtStorageRefreshService)).Returns(refreshService);
+        var logger = Substitute.For<ILogger<UmbracoMediaRobotsTxtRefreshBackgroundJob>>();
+        var services = new ServiceCollection();
+        services.AddScoped(_ => refreshService);
+        var serviceProvider = services.BuildServiceProvider();
 
         var sut = new UmbracoMediaRobotsTxtRefreshBackgroundJob(
-            scopeFactory,
+            serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(new RobotsTxtOptions
             {
                 Storage = new RobotsTxtStorageOptions
@@ -35,7 +33,8 @@ public sealed class UmbracoMediaRobotsTxtRefreshBackgroundJobTests
                         RefreshJobDelayInSeconds = 30
                     }
                 }
-            }));
+            }),
+            logger);
 
         await sut.RunJobAsync();
 

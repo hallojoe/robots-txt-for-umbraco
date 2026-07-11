@@ -1,8 +1,6 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
 using Casko.RobotsTxtForUmbraco.Common.Services;
-using Casko.RobotsTxtForUmbraco.Common.Services.Cms;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using NUnit.Framework;
 
 namespace Casko.RobotsTxtForUmbraco.Tests.Unit;
@@ -10,180 +8,151 @@ namespace Casko.RobotsTxtForUmbraco.Tests.Unit;
 [TestFixture]
 public sealed class DefaultRobotsTxtServiceTests
 {
-    private IRobotsTxtCmsContentService _cmsContentService = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _cmsContentService = Substitute.For<IRobotsTxtCmsContentService>();
-    }
-
     [Test]
-    public async Task GetAsync_WhenHostMatchesConfiguredFile_UsesMatchedFile()
+    public async Task GetAsync_WhenHostMatches_ResolvesProfilesAndHostOverrides()
     {
-        var sut = CreateService(new RobotsTxtOptions
+        var options = new RobotsTxtOptions
         {
-            Files = new Dictionary<string, RobotsTxtFileOptions>
+            DefaultHost = "default",
+            Hosts = new Dictionary<string, RobotsTxtHostOptions>
             {
                 ["default"] = new()
                 {
-                    HostName = null,
-                    Sitemaps = ["https://example.com/default.xml"],
-                    UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
-                    {
-                        ["*"] = new() { Disallow = ["/default"] }
-                    }
+                    Profiles = ["default-sitemap"]
                 },
                 ["host-1"] = new()
                 {
-                    HostName = "site.example.com",
-                    Sitemaps = ["https://site.example.com/sitemap.xml"],
+                    HostName = "example.com",
+                    FrontendHostName = "https://www.example.com",
+                    Profiles = ["disallow-base", "allow-public"],
+                    Sitemaps = ["/host-sitemap.xml"],
                     UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
                     {
-                        ["bingbot"] = new() { Allow = ["/public"] }
-                    },
-                    DisallowScanEnabled = false
+                        ["*"] = new() { Disallow = ["/admin"] }
+                    }
                 }
-            }
-        });
-
-        var result = await sut.GetAsync("https://site.example.com");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Sitemaps, Is.EqualTo(new[] { "https://site.example.com/sitemap.xml" }));
-            Assert.That(result.Groups.Count, Is.EqualTo(1));
-            Assert.That(result.Groups[0].UserAgents, Is.EqualTo(new[] { "bingbot" }));
-            Assert.That(result.Groups[0].Allow, Is.EqualTo(new[] { "/public" }));
-        });
-    }
-
-    [Test]
-    public async Task GetAsync_WhenHostDoesNotMatch_UsesHostlessFileBeforeDefaultKeyFallback()
-    {
-        var sut = CreateService(new RobotsTxtOptions
-        {
-            Files = new Dictionary<string, RobotsTxtFileOptions>
+            },
+            Profiles = new Dictionary<string, RobotsTxtProfileOptions>
             {
-                ["default"] = new()
+                ["default-sitemap"] = new()
                 {
-                    HostName = "default.example.com",
-                    Sitemaps = ["https://default.example.com/sitemap.xml"],
-                    UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
-                    {
-                        ["*"] = new() { Disallow = ["/default"] }
-                    },
-                    DisallowScanEnabled = false
+                    Sitemaps = ["/default.xml"]
                 },
-                ["fallback"] = new()
+                ["disallow-base"] = new()
                 {
-                    HostName = null,
-                    Sitemaps = ["https://fallback.example.com/sitemap.xml"],
                     UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
                     {
-                        ["*"] = new() { Disallow = ["/fallback"] }
-                    },
-                    DisallowScanEnabled = false
-                }
-            }
-        });
-
-        var result = await sut.GetAsync("unknown.example.com");
-
-        Assert.That(result.Sitemaps, Is.EqualTo(new[] { "https://fallback.example.com/sitemap.xml" }));
-    }
-
-    [Test]
-    public async Task GetAsync_WhenDisallowScanIsDisabled_DoesNotScanContent()
-    {
-        var sut = CreateService(new RobotsTxtOptions
-        {
-            Files = new Dictionary<string, RobotsTxtFileOptions>
-            {
-                ["default"] = new()
-                {
-                    DisallowScanEnabled = false,
-                    UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
-                    {
-                        ["*"] = new() { Disallow = ["/configured"] }
+                        ["*"] = new() { Disallow = ["/private"] }
                     }
+                },
+                ["allow-public"] = new()
+                {
+                    UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
+                    {
+                        ["*"] = new() { Allow = ["/public"] }
+                    }
+                },
+                ["block-ai"] = new()
+                {
+                    DisallowUserAgents = ["GPTBot", "ChatGPT-user"]
                 }
             }
-        });
+        };
 
-        var result = await sut.GetAsync("example.com");
+        options.Hosts["host-1"].Profiles.Add("block-ai");
+
+        var result = await CreateService(options).GetAsync("example.com");
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Groups.Single().Disallow, Is.EqualTo(new[] { "/configured" }));
-            _cmsContentService.DidNotReceiveWithAnyArgs().GetDisallowedContents(default);
+            Assert.That(result.SitemapBaseUrl, Is.EqualTo("https://www.example.com"));
+            Assert.That(result.Sitemaps, Is.EqualTo(new[] { "/host-sitemap.xml" }));
+            Assert.That(result.DisallowUserAgents, Is.EqualTo(new[] { "GPTBot", "ChatGPT-user" }));
+            Assert.That(result.Groups.Count, Is.EqualTo(1));
+            Assert.That(result.Groups[0].UserAgents, Is.EqualTo(new[] { "*" }));
+            Assert.That(result.Groups[0].Allow, Is.EqualTo(new[] { "/public" }));
+            Assert.That(result.Groups[0].Disallow, Is.EqualTo(new[] { "/private", "/admin" }));
         });
     }
 
     [Test]
-    public async Task GetAsync_WhenDisallowScanIsEnabled_MergesGeneratedDisallowsIntoWildcardGroup()
+    public async Task GetAsync_WhenNoHostMatches_FallsBackToDefaultHost()
     {
-        _cmsContentService.GetDisallowedContents("example.com").Returns(new[] { "/hidden" });
-
-        var sut = CreateService(new RobotsTxtOptions
+        var options = new RobotsTxtOptions
         {
-            ExcludingUrlPropertyAlias = "umbracoNaviHide",
-            ExcludingUrlPropertyValue = "1",
-            Files = new Dictionary<string, RobotsTxtFileOptions>
+            DefaultHost = "default",
+            Hosts = new Dictionary<string, RobotsTxtHostOptions>
             {
                 ["default"] = new()
                 {
-                    HostName = "example.com",
+                    Profiles = ["disallow-all"]
+                }
+            },
+            Profiles = new Dictionary<string, RobotsTxtProfileOptions>
+            {
+                ["disallow-all"] = new()
+                {
                     UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
                     {
-                        ["*"] = new() { Disallow = ["/configured"] }
+                        ["*"] = new() { Disallow = ["/"] }
                     }
                 }
             }
-        });
+        };
 
-        var result = await sut.GetAsync("example.com");
+        var result = await CreateService(options).GetAsync("unknown.example");
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Groups.Single().Disallow, Is.EqualTo(new[] { "/configured", "/hidden" }));
-            _cmsContentService.Received(1).GetDisallowedContents("example.com");
-        });
+        Assert.That(result.Groups[0].Disallow, Is.EqualTo(new[] { "/" }));
     }
 
     [Test]
-    public async Task GetAsync_WhenGeneratedDisallowsExistWithoutWildcardGroup_CreatesWildcardGroup()
+    public async Task GetAsync_WhenProfilesShareUserAgent_MergesListsCaseInsensitively()
     {
-        _cmsContentService.GetDisallowedContents("example.com").Returns(new[] { "/hidden" });
-
-        var sut = CreateService(new RobotsTxtOptions
+        var options = new RobotsTxtOptions
         {
-            ExcludingUrlPropertyAlias = "umbracoNaviHide",
-            ExcludingUrlPropertyValue = "1",
-            Files = new Dictionary<string, RobotsTxtFileOptions>
+            DefaultHost = "default",
+            Hosts = new Dictionary<string, RobotsTxtHostOptions>
             {
                 ["default"] = new()
                 {
-                    HostName = "example.com",
+                    Profiles = ["profile-1", "profile-2"]
+                }
+            },
+            Profiles = new Dictionary<string, RobotsTxtProfileOptions>
+            {
+                ["profile-1"] = new()
+                {
+                    DisallowUserAgents = ["GPTBot"],
                     UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
                     {
-                        ["ai-bot"] = new() { Disallow = ["/bot"] }
+                        ["GoogleBot"] = new() { Disallow = ["/private"] }
+                    }
+                },
+                ["profile-2"] = new()
+                {
+                    DisallowUserAgents = ["gptbot", "ChatGPT-user"],
+                    UserAgents = new Dictionary<string, RobotsTxtUserAgentOptions>
+                    {
+                        ["googlebot"] = new() { Allow = ["/public"] }
                     }
                 }
             }
-        });
+        };
 
-        var result = await sut.GetAsync("example.com");
+        var result = await CreateService(options).GetAsync(null);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Groups.Count, Is.EqualTo(2));
-            Assert.That(result.Groups.Single(group => group.UserAgents.SequenceEqual(new[] { "*" })).Disallow, Is.EqualTo(new[] { "/hidden" }));
+            Assert.That(result.DisallowUserAgents, Is.EqualTo(new[] { "GPTBot", "ChatGPT-user" }));
+            Assert.That(result.Groups.Count, Is.EqualTo(1));
+            Assert.That(result.Groups[0].UserAgents, Is.EqualTo(new[] { "GoogleBot" }));
+            Assert.That(result.Groups[0].Allow, Is.EqualTo(new[] { "/public" }));
+            Assert.That(result.Groups[0].Disallow, Is.EqualTo(new[] { "/private" }));
         });
     }
 
-    private DefaultRobotsTxtService CreateService(RobotsTxtOptions options)
+    private static DefaultRobotsTxtService CreateService(RobotsTxtOptions options)
     {
-        return new DefaultRobotsTxtService(Options.Create(options), _cmsContentService);
+        return new DefaultRobotsTxtService(Options.Create(options));
     }
 }
