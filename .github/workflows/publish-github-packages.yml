@@ -1,0 +1,152 @@
+name: Publish NuGet package to GitHub Packages and NuGet
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+env:
+  DOTNET_VERSION: 10.0.x
+  PROJECT_FILE: src/Casko.RobotsTxtForUmbraco.Packagee/Casko.RobotsTxtForUmbraco.Packagee.csproj
+  GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+  NUGET_PACKAGE_SOURCE: https://api.nuget.org/v3/index.json
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Derive and validate package version
+        id: versioning
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${{ github.event.release.tag_name }}"
+          TARGET_BRANCH="${{ github.event.release.target_commitish }}"
+
+          echo "Release tag: $TAG"
+          echo "Target branch: $TARGET_BRANCH"
+
+          if [[ ! "$TAG" =~ ^v.+ ]]; then
+            echo "::error::Release tag must start with 'v'. Got: $TAG"
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+            echo "::error::Derived version is not valid: $VERSION"
+            exit 1
+          fi
+
+          if [[ "$VERSION" == *-* ]]; then
+            IS_PRERELEASE=true
+          else
+            IS_PRERELEASE=false
+          fi
+
+          if [[ "$IS_PRERELEASE" == "false" && "$TARGET_BRANCH" != "main" ]]; then
+            echo "::error::Stable releases are only allowed from 'main'. Tag '$TAG' targets '$TARGET_BRANCH'."
+            exit 1
+          fi
+
+          if [[ "$IS_PRERELEASE" == "true" && "$TARGET_BRANCH" == "main" ]]; then
+            echo "::error::Prerelease versions are not allowed from 'main'. Tag '$TAG' targets '$TARGET_BRANCH'."
+            exit 1
+          fi
+
+          echo "package_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+
+          echo "Resolved package version: $VERSION"
+          echo "Prerelease: $IS_PRERELEASE"
+
+      - name: Restore
+        run: dotnet restore "${{ env.PROJECT_FILE }}"
+
+      - name: Pack
+        run: |
+          dotnet pack "${{ env.PROJECT_FILE }}" \
+            --configuration Release \
+            --no-restore \
+            -p:Version=${{ steps.versioning.outputs.package_version }} \
+            -o ./artifacts
+
+      - name: Push package to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          packages=(./artifacts/*.nupkg)
+          symbols=(./artifacts/*.snupkg)
+
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No .nupkg files were produced."
+            exit 1
+          fi
+
+          for pkg in "${packages[@]}"; do
+            if [[ "$pkg" == *.snupkg ]]; then
+              continue
+            fi
+
+            echo "Pushing $pkg"
+            dotnet nuget push "$pkg" \
+              --source "${{ env.GITHUB_PACKAGE_SOURCE }}" \
+              --api-key "$GITHUB_TOKEN" \
+              --skip-duplicate
+          done
+
+          if [ ${#symbols[@]} -gt 0 ]; then
+            echo "::notice::Symbol packages were produced but are not being pushed in this workflow."
+          fi
+
+      - name: Push package to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          packages=(./artifacts/*.nupkg)
+
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No .nupkg files were produced."
+            exit 1
+          fi
+
+          for pkg in "${packages[@]}"; do
+            if [[ "$pkg" == *.snupkg ]]; then
+              continue
+            fi
+
+            echo "Pushing $pkg"
+            dotnet nuget push "$pkg" \
+              --source "${{ env.NUGET_PACKAGE_SOURCE }}" \
+              --api-key "$NUGET_API_KEY" \
+              --skip-duplicate
+          done
+
+      - name: Summarize
+        run: |
+          echo "Published version: ${{ steps.versioning.outputs.package_version }}"
+          echo "Prerelease: ${{ steps.versioning.outputs.is_prerelease }}"
+          echo "GitHub Packages source: ${{ env.GITHUB_PACKAGE_SOURCE }}"
+          echo "NuGet source: ${{ env.NUGET_PACKAGE_SOURCE }}"

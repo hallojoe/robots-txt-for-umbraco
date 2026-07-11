@@ -1,0 +1,41 @@
+name: CI Build Validation
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+  NODE_VERSION: 22
+  PACKAGE_PROJECT: src/Casko.RobotsTxtForUmbraco.Package/Casko.RobotsTxtForUmbraco.Package.csproj
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore package project
+        run: dotnet restore "${{ env.PACKAGE_PROJECT }}"
+
+      - name: Build package project
+        run: dotnet build "${{ env.PACKAGE_PROJECT }}" --configuration Release --no-restore
+
+
+
+
