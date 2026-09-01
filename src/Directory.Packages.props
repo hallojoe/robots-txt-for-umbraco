@@ -14,7 +14,7 @@
     <PackageVersion Include="Umbraco.Cms.Tests.Integration" Version="17.3.5" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.2" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.10" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10" />
     <PackageVersion Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.7" />
     <PackageVersion Include="Umbraco.Cms" Version="17.*" />
@@ -25,6 +25,5 @@
     <PackageVersion Include="Umbraco.Cms.Web.Common" Version="17.*" />
     <PackageVersion Include="Umbraco.Cms.Web.Website" Version="17.*" />
     <PackageVersion Include="Umbraco.Cms.Api.Delivery" Version="17.*" />
-    <PackageVersion Include="Casko.XmlSitemapsForUmbraco" Version="2.0.3" />
   </ItemGroup>
 </Project>
