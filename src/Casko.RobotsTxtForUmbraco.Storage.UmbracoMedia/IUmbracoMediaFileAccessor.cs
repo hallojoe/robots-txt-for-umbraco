@@ -9,6 +9,4 @@ public interface IUmbracoMediaFileAccessor
     Stream OpenRead(string filePath);
 
     void SetInitialFile(IMedia media, string fileName, Stream content);
-
-    void UpdateFileContent(string filePath, Stream content);
 }

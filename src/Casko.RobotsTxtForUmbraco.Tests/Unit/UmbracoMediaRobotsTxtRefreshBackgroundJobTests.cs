@@ -29,7 +29,6 @@ public sealed class UmbracoMediaRobotsTxtRefreshBackgroundJobTests
                 {
                     BackgroundJob = new RobotsTxtStorageBackgroundJobOptions
                     {
-                        Enabled = true,
                         RefreshJobDelayInSeconds = 30
                     }
                 }

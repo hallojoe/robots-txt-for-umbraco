@@ -21,6 +21,12 @@ public sealed class RobotsTxtOptions
 public sealed class RobotsTxtStorageOptions
 {
     /// <summary>
+    /// Gets or sets the number of seconds to retain obsolete robots.txt media versions.
+    /// Set to <c>0</c> or less to disable automatic cleanup.
+    /// </summary>
+    public int VersionCleanupAfterSeconds { get; set; } = 600;
+
+    /// <summary>
     /// Gets or sets the number of seconds after which a stored robots.txt document is considered stale.
     /// </summary>
     public int RefreshStaleAfterSeconds { get; set; } = 3600;
@@ -28,16 +34,11 @@ public sealed class RobotsTxtStorageOptions
     /// <summary>
     /// Gets or sets the options for the background refresh job.
     /// </summary>
-    public RobotsTxtStorageBackgroundJobOptions BackgroundJob { get; set; } = new();
+    public RobotsTxtStorageBackgroundJobOptions? BackgroundJob { get; set; }
 }
 
 public sealed class RobotsTxtStorageBackgroundJobOptions
 {
-    /// <summary>
-    /// Gets or sets a value indicating whether the background refresh job is enabled.
-    /// </summary>
-    public bool Enabled { get; set; } = true;
-
     /// <summary>
     /// Gets or sets the interval in seconds between background refresh jobs.
     /// </summary>

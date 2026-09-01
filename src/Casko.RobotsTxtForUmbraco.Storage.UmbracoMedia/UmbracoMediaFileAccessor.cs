@@ -37,8 +37,4 @@ public sealed class UmbracoMediaFileAccessor(
             content);
     }
 
-    public void UpdateFileContent(string filePath, Stream content)
-    {
-        mediaService.SetMediaFileContent(filePath, content);
-    }
 }

@@ -7,8 +7,6 @@
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="Casko.XmlSitemapsForUmbraco" />
-    <PackageReference Include="Casko.HttpHeadersForUmbraco" />
     <PackageReference Include="Umbraco.Cms"/>
     <PackageReference Include="Umbraco.Cms.DevelopmentMode.Backoffice"/>
     <PackageReference Include="Microsoft.ICU.ICU4C.Runtime" />

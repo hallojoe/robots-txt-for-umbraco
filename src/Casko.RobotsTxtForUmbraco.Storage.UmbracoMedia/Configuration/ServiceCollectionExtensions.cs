@@ -1,7 +1,5 @@
 using Casko.RobotsTxtForUmbraco.Common.Configuration;
-using Casko.RobotsTxtForUmbraco.Common.Services;
 using Casko.RobotsTxtForUmbraco.Storage.Configuration;
-using Casko.RobotsTxtForUmbraco.Storage.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -32,11 +30,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUmbracoMediaFileAccessor, UmbracoMediaFileAccessor>();
         services.AddScoped<IRobotsTxtDataSource, UmbracoMediaRobotsTxtDataSource>();
         
-        services.AddScoped<IRobotsTxtTextService, StoredRobotsTxtTextService>();
-        
-        services.AddScoped<IRobotsTxtStorageRefreshService, RobotsTxtStorageRefreshService>();
-
-        services.AddRecurringBackgroundJob<UmbracoMediaRobotsTxtRefreshBackgroundJob>();
+        if (robotsTxtConfigurationSection
+            .GetSection($"{nameof(RobotsTxtOptions.Storage)}:{nameof(RobotsTxtStorageOptions.BackgroundJob)}")
+            .Exists())
+        {
+            services.AddRecurringBackgroundJob<UmbracoMediaRobotsTxtRefreshBackgroundJob>();
+        }
 
         return services;
     }

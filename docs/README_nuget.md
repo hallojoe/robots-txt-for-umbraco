@@ -24,8 +24,8 @@ Robots.txt for Umbraco publishes a host-aware `/robots.txt` from configuration a
     ],
     "Storage": {
       "RefreshStaleAfterSeconds": 3600,
+      "VersionCleanupAfterSeconds": 600,
       "BackgroundJob": {
-        "Enabled": true,
         "IntervalSeconds": 3600
       }
     }
